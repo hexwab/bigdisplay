@@ -37,6 +37,7 @@ class DisplayInterfaceData(object):
         # read dims[0] x dims[1] x 4 bytes of data from fp
         bytes_ = self.disp_dims[0] * self.disp_dims[1] * 4
         data = fp.read(bytes_)
+        #data = map(ord,fp.read(bytes_))
         x = 0
         y = 0
         s = []
@@ -51,13 +52,25 @@ class DisplayInterfaceData(object):
         # calculate pixels on a per-row/col basis
         for y in range(h):
             row_off = y * (w * 4)
-            for x in range(w):
-                # PANEL order: green top, blue, green bottom, red (physical pixels)
-                # DATA order:  red, green top, blue, green bottom
-                s = (data[row_off + (x * 2) + red_off], data[row_off + (x * 2) + grn_t_off], data[row_off + (x * 2) + blu_off], data[row_off + (x * 2) + grn_b_off])
-                s = map(ord, s)
-                self.pixels[y][x] = s
-                #print (s)
+            rd = data[row_off+red_off  :row_off+red_off+w*2  :2]
+            g1 = data[row_off+grn_t_off:row_off+grn_t_off+w*2:2]
+            bl = data[row_off+blu_off  :row_off+blu_off+w*2  :2]
+            g2 = data[row_off+grn_b_off:row_off+grn_b_off+w*2:2]
+
+            self.pixels[y] = map(lambda x:(rd[x]+g1[x]+bl[x]+g2[x]),range(w))
+
+            # for x in range(w):
+            #     # PANEL order: green top, blue, green bottom, red (physical pixels)
+            #     # DATA order:  red, green top, blue, green bottom
+            #     #s = (data[row_off + (x * 2) + red_off], data[row_off + (x * 2) + grn_t_off], data[row_off + (x * 2) + blu_off], data[row_off + (x * 2) + grn_b_off])
+            #     #s = map(ord, s)
+            #     #s = (ord(data[row_off + (x * 2) + red_off]), ord(data[row_off + (x * 2) + grn_t_off]), ord(data[row_off + (x * 2) + blu_off]), ord(data[row_off + (x * 2) + grn_b_off]))
+            #     #s = map(ord, s)
+            #     #s = (ord(rd[x]), ord(g1[x]), ord(bl[x]), ord(g2[x]))
+            #     s = (rd[x], g1[x], bl[x], g2[x])
+            #     #s = map(ord, s)
+            #     self.pixels[y][x] = s
+            #     #print (s)
 
     def output_frame(self):
         # break output into blocks
@@ -75,10 +88,13 @@ class DisplayInterfaceData(object):
         data = header
 
         for yy in range(y, y + h):
-            for xx in range(x, x + w):
-                pix = self.pixels[yy][xx]
-                #print(pix)
-                data += struct.pack("BBBB", *list(pix))
+            #for xx in range(x, x + w):
+            #    pix = self.pixels[yy][xx]
+            #    #print(pix)
+            #    data += struct.pack("BBBB", *list(pix))
+            #pix = map(lambda s: struct.pack("BBBB",*list(s)), self.pixels[yy][x:x+w])
+            pix = self.pixels[yy][x:x+w]
+            data += ''.join(pix)
         #print len(data)
         self.send_cmd(data)
     
